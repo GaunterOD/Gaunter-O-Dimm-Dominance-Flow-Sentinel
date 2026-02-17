@@ -24,7 +24,7 @@
 ## 🚀 사용 방법 (Usage)
 
 ### 실행 파일(EXE) 이용 시
-1. [Releases](https://github.com/[네 아이디]/Dominance-Flow-Sentinel/releases) 탭에서 최신 버전의 실행 파일을 다운로드합니다.
+1. [Releases](https://github.com/GaunterOD/Dominance-Flow-Sentinel/releases) 탭에서 최신 버전의 실행 파일을 다운로드합니다.
 2. 프로그램을 실행한 후 분석할 거래소(Binance / Coinbase)를 선택합니다.
 3. 확인하고자 하는 시간봉(예: 15m, 1h, 4h, 1d)을 입력하면 실시간 모니터링이 시작됩니다.
 
@@ -53,4 +53,5 @@ GAUNTER-O-DIMM
 
 Bitcoin Trend Analysis & Open Source Development
 
-[GitHub Profile](https://github.com/[GaunterOD])
+[GitHub Profile](https://github.com/GaunterOD)
+
