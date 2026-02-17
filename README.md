@@ -5,8 +5,6 @@
 ![Python](https://img.shields.io/badge/Python-3.10+-brightgreen.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)
 
-> **"비트코인의 움직임뿐만 아니라 시장의 '돈의 흐름'을 꿰뚫어 보십시오."** > 본 프로그램은 비트코인 도미넌스와 기술적 지표를 결합하여 실시간으로 시장 추세를 분석하는 전문 트레이딩 보조 도구입니다.
-
 ---
 
 ## ✨ 핵심 기능 (Key Features)
@@ -36,3 +34,4 @@
  🌊 추세 지도   : 📈 정배열(상승추세)
  📏 이격도 체크 : P-55[✅안정] / 55-200[📈확산]
  💪 체력(RSI)   : 62.50 -> 🔥강세 (Bull)
+
