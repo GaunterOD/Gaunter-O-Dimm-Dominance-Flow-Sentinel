@@ -37,3 +37,20 @@ pip install pandas ccxt requests
 
 # 프로그램 실행
 python "gaunter_v7.py"
+
+
+
+📝 참고 사항 (Notes)
+데이터 출처: Coinbase (Spot Price), CoinGecko (Global Dominance), Binance/Coinbase (OHLCV).
+
+빌드 정보: Nuitka 컴파일러를 사용하여 C++ 기반으로 최적화된 단일 실행 파일을 제공합니다.
+
+⚖️ 면책 조항 (Disclaimer)
+본 프로그램은 투자 판단을 돕기 위한 정보 제공만을 목적으로 하며, 금융 상품의 매수·매도를 권유하지 않습니다. 모든 투자의 책임은 투자자 본인에게 있으며, 개발자는 프로그램 사용으로 인해 발생하는 어떠한 손실에 대해서도 책임을 지지 않습니다.
+
+👤 Author
+GAUNTER-O-DIMM
+
+Bitcoin Trend Analysis & Open Source Development
+
+[GitHub Profile](https://github.com/[GaunterOD])
