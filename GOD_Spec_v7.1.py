@@ -22,7 +22,7 @@ def print_banner_simple():
     print(" \____|\__,_|\__,_|_| |_|\__\___|_|   ")
     print("                                      ")
     print(" ======================================================")
-    print("    GAUNTER-O-DIMM Trend Follower Spec v7.0 (Final)")
+    print("    GAUNTER-O-DIMM Trend Follower Spec v7.1 (Final)")
     print("            Designed by [ GAUNTER-O-DIMM ]             ")   
     print(" ======================================================\n")
 
@@ -63,16 +63,21 @@ def get_global_market_status():
         btc_dom_delta = cur_btc_dom - prev_btc_dom
         usdt_dom_delta = cur_usdt_dom - prev_usdt_dom
 
-        # 3. 테더 페깅 상태 분석
-        peg_msg = "🟢안정"
-        if usdt_price >= 1.0005: peg_msg = f"🔴프리미엄(${usdt_price:.4f})" 
-        elif usdt_price <= 0.9995: peg_msg = f"🔵이탈우려(${usdt_price:.4f})"
+        # [3] 테더 페깅 상태 메시지 결정
+        # 가격은 무조건 보여주고, 상태 메시지만 여기서 정함
+        if usdt_price >= 1.0005: 
+            peg_msg = "🔴프리미엄 (주의)" 
+        elif usdt_price <= 0.9995: 
+            peg_msg = "🔵이탈우려 (주의)"
+        else:
+            peg_msg = "🟢안정"
 
         return {
             "btc_dom": cur_btc_dom,
             "btc_delta": btc_dom_delta,
             "usdt_dom": cur_usdt_dom,
             "usdt_delta": usdt_dom_delta,
+            "usdt_price": usdt_price,
             "peg_msg": peg_msg
         }
 
@@ -119,14 +124,76 @@ def main_menu():
         
     return exchange, ex_name, symbol, timeframe
 
+
+# [추가] S/R Flip 감지 로직
+def detect_sr_flip(df, window=5, tolerance=0.01):
+    """
+    df: 차트 데이터 (timestamp 컬럼 필수)
+    window: 좌우 비교 범위
+    tolerance: 오차 범위 비율
+    """
+    current_price = df['close'].iloc[-1]
+    
+    # 최근 500개 데이터만 사용 (속도 및 최신성 고려)
+    subset = df.iloc[-500:-1].copy() 
+    
+    potential_pivots = [] # (가격, 타입, 날짜)를 저장할 리스트
+
+    # 피벗 포인트 찾기
+    for i in range(window, len(subset) - window):
+        price = subset['close'].iloc[i]
+        date_time = subset['timestamp'].iloc[i] # 타임스탬프 가져오기
+        
+        # 고점 판별
+        is_high = all(subset['high'].iloc[i] >= subset['high'].iloc[i-k] for k in range(1, window+1)) and \
+                  all(subset['high'].iloc[i] >= subset['high'].iloc[i+k] for k in range(1, window+1))
+        
+        # 저점 판별
+        is_low = all(subset['low'].iloc[i] <= subset['low'].iloc[i-k] for k in range(1, window+1)) and \
+                 all(subset['low'].iloc[i] <= subset['low'].iloc[i+k] for k in range(1, window+1))
+
+        if is_high:
+            potential_pivots.append((subset['high'].iloc[i], "RES", date_time))
+        if is_low:
+            potential_pivots.append((subset['low'].iloc[i], "SUP", date_time))
+
+    # 현재 가격과 비교 (최신 피벗부터 역순으로 탐색)
+    msg = "None"
+    
+    # 리스트를 뒤집어서 '가장 최근에 만들어진' 지지/저항부터 체크
+    for pivot_price, p_type, p_time in reversed(potential_pivots):
+        upper = pivot_price * (1 + tolerance)
+        lower = pivot_price * (1 - tolerance)
+        
+        if lower <= current_price <= upper:
+            # 타임스탬프를 읽기 좋은 날짜 문자열로 변환 (밀리초 제거)
+            date_str = datetime.fromtimestamp(p_time / 1000).strftime('%Y-%m-%d %H:%M')
+            
+            # 메시지 구성
+            if current_price >= pivot_price:
+                # 가격이 위에 있으면 -> 지지(Support) 역할 기대
+                role = "🟢 지지(Support)"
+                origin = "고점" if p_type == "RES" else "저점"
+                msg = f"{role} 테스트 중\n      └ 기준: {date_str}의 {origin} (${pivot_price:,.0f})"
+            else:
+                # 가격이 아래에 있으면 -> 저항(Resistance) 역할 기대
+                role = "🔴 저항(Resistance)"
+                origin = "저점" if p_type == "SUP" else "고점"
+                msg = f"{role} 테스트 중\n      └ 기준: {date_str}의 {origin} (${pivot_price:,.0f})"
+            
+            return msg # 하나 찾으면 즉시 리턴
+
+    return None
+
 # ==========================================
 # 3. 데이터 처리
 # ==========================================
 def fetch_and_process(exchange, symbol, timeframe):
     try:
         ohlcv = exchange.fetch_ohlcv(symbol, timeframe, limit=1000)
+        # [수정] 리턴 값을 3개로 통일해야 해 (None, None, 메시지)
         if not ohlcv or len(ohlcv) < 200:
-            return None, "데이터 부족"
+            return None, None, "데이터 부족" 
             
         df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
         
@@ -148,11 +215,26 @@ def fetch_and_process(exchange, symbol, timeframe):
         # (4) Volume Delta & Slope
         df['Vol_Delta'] = np.where(df['close'] > df['open'], df['volume'], -df['volume'])
         df['EMA_55_Slope'] = df['EMA_55'].diff()
+
+        # [NEW] 타임프레임별 동적 설정 (Dynamic Settings)
+        if timeframe in ['1m', '3m', '5m', '15m']:
+            set_window = 5
+            set_tol = 0.005  # 0.5%
+        elif timeframe in ['30m', '1h', '4h']:
+            set_window = 7
+            set_tol = 0.01   # 1.0%
+        else: 
+            set_window = 9   # 굵직한 봉우리만
+            set_tol = 0.02   # 2.0%
+
+        # 함수 호출 시 설정값 전달
+        sr_status = detect_sr_flip(df, window=set_window, tolerance=set_tol)
         
-        return df, None
+        # [수정] 여기서 3개를 던져주니까 받는 쪽도 3개를 받아야 함
+        return df, sr_status, None 
 
     except Exception as e:
-        return None, str(e)
+        return None, None, str(e)
 
 # ==========================================
 # 4. 모니터링 & 판정
@@ -173,27 +255,28 @@ def run_monitor(exchange, ex_name, symbol, timeframe):
         try:
             print(".", end="", flush=True)
 
-            # [1] 글로벌 데이터 가져오기 (에러 방지 처리)
+            # [1] 글로벌 데이터 가져오기
             try:
-                # 매번 가져오면 느리니까, 가끔 실패해도 이전 데이터 유지하거나 None 처리
                 temp_g_data = get_global_market_status()
                 if temp_g_data:
                     g_data = temp_g_data
             except Exception:
-                pass # API 오류나도 그냥 무시하고 차트 분석 진행
+                pass 
 
-            # [2] 차트 데이터 가져오기
-            df, error_msg = fetch_and_process(exchange, symbol, timeframe)
+            # [2] 차트 데이터 가져오기 (여기가 문제였어!)
+            # [수정] 값을 3개 받아야 해: df, sr_msg, error_msg
+            df, sr_msg, error_msg = fetch_and_process(exchange, symbol, timeframe)
             
             if df is not None:
                 print_banner_simple()
+                # ... (나머지 코드는 그대로 둬도 돼) ...
 
                 # [3] 글로벌 정보 출력 (전일 대비 등락 포함)
                 if g_data:
                     print(f" [ 🌍 GLOBAL MARKET VIEW ]")
                     print(f"  ■ BTC.D : {g_data['btc_dom']:.2f}% ({format_delta(g_data['btc_delta'])})")
                     print(f"  ■ USDT.D: {g_data['usdt_dom']:.2f}% ({format_delta(g_data['usdt_delta'])})")
-                    print(f"  ■ USDT  : {g_data['peg_msg']}")
+                    print(f"  ■ USDT  : ${g_data['usdt_price']:.4f}  {g_data['peg_msg']}")
                     print(" =" * 55 + "\n")
 
                 curr = df.iloc[-1]
@@ -233,6 +316,11 @@ def run_monitor(exchange, ex_name, symbol, timeframe):
                 vol_icon = "매수세 우위" if curr['Vol_Delta'] > 0 else "매도세 우위"
                 print(f" 💪 체력(RSI)   : {rsi_val:.2f} -> {rsi_status}")
                 print(f" 📊 수급(Vol)   : {vol_icon}")
+                # [NEW] 지지/저항 구간 정보 출력
+                if sr_msg: # 메시지가 있을 때만 출력
+                    print(f" 🛡️ S/R 구간    : {sr_msg}")
+                else:
+                    print(f" 🛡️ S/R 구간    : ⚪ 특이사항 없음 (허공에 있음)")
                 
                 print("-" * 55)
                 
