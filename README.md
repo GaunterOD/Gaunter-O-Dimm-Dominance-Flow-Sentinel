@@ -65,9 +65,10 @@ $ python GOD_Spec_v7.2.py
 - 스크린샷
 <img width="763" height="855" alt="image" src="https://github.com/user-attachments/assets/c871f287-655a-47a3-b603-fdef0bdee108" />
 
--위와 같은 상황일 당시 트레이딩뷰 차트 
+- 위와 같은 상황일 당시 트레이딩뷰 차트 
 <img width="2413" height="1274" alt="image" src="https://github.com/user-attachments/assets/ab5751d6-a248-45aa-96a9-0731460b36e5" />
 
 Designed by GAUNTER-O-DIMM
+
 
 
