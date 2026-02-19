@@ -54,7 +54,7 @@ $ python GOD_Spec_v7.2.py
 
 ## ⚠️ 참고 사항 (FAQ)
 - 백신 오진: 실행 파일이 삭제될 경우 Windows 보안 설정의 '제외' 항목에 등록하십시오.
-- 데이터 부족: 신규 상장 코인의 경우 과거 데이터 부족으로 분석이 제한될 수 있습니다.
+- BTC 분석에만 집중되어 있으니 참고하세요
 
 ---
 
@@ -69,6 +69,7 @@ $ python GOD_Spec_v7.2.py
 <img width="2413" height="1274" alt="image" src="https://github.com/user-attachments/assets/ab5751d6-a248-45aa-96a9-0731460b36e5" />
 
 Designed by GAUNTER-O-DIMM
+
 
 
 
